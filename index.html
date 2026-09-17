@@ -931,7 +931,7 @@
         showToast("Barcode captured: " + code);
       },
       function() {
-        showToast("Couldn't find a barcode in that photo. Try again with more light and less blur.");
+        showToast("Couldn't find a barcode — fill the frame with just the barcode, avoid glare, and hold steady.");
       }
     );
   });
@@ -950,7 +950,7 @@
       document.body.appendChild(tempDiv);
     }
     try {
-      var fileScanner = new Html5Qrcode(tempId);
+      var fileScanner = new Html5Qrcode(tempId, { formatsToSupport: getBarcodeFormats(), verbose: false });
       fileScanner.scanFile(file, false).then(function(decodedText) {
         onSuccess(decodedText);
       }).catch(function(err) {
@@ -966,6 +966,22 @@
   // ---------- CAMERA SCAN MODAL ----------
   var html5QrInstance = null;
 
+  function getBarcodeFormats() {
+    if (typeof Html5QrcodeSupportedFormats === "undefined") return undefined;
+    return [
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.CODE_93,
+      Html5QrcodeSupportedFormats.CODABAR,
+      Html5QrcodeSupportedFormats.ITF,
+      Html5QrcodeSupportedFormats.QR_CODE
+    ];
+  }
+
   function openScanner(onResult) {
     var modal = document.getElementById("scanModal");
     var hint = document.getElementById("scanHint");
@@ -980,8 +996,8 @@
     }
 
     try {
-      html5QrInstance = new Html5Qrcode("scannerRegion");
-      var config = { fps: 10, qrbox: { width: 260, height: 160 } };
+      html5QrInstance = new Html5Qrcode("scannerRegion", { formatsToSupport: getBarcodeFormats(), verbose: false });
+      var config = { fps: 10, qrbox: { width: 280, height: 140 } };
       html5QrInstance.start(
         { facingMode: "environment" },
         config,
