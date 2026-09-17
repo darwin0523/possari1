@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Tindahan POS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Work+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  :root {
+    --bg: #F5EFDF;
+    --surface: #FFFFFF;
+    --surface-alt: #EFE4C4;
+    --ink: #1C2A20;
+    --ink-soft: #64705F;
+    --accent: #E3A008;
+    --accent-ink: #33230A;
+    --brand: #0F3D3E;
+    --brand-ink: #FFFFFF;
+    --danger: #C1443D;
+    --success: #2F7A4F;
+    --border: #DACD9F;
+    --shadow: 0 1px 0 rgba(0,0,0,.06);
+    --radius: 10px;
+    --font-display: 'Archivo Black', 'Work Sans', sans-serif;
+    --font-body: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0F1E1A;
+      --surface: #16302A;
+      --surface-alt: #1D3B33;
+      --ink: #ECE6D2;
+      --ink-soft: #A6B6AA;
+      --accent: #F2B705;
+      --accent-ink: #2B1E00;
+      --brand: #4FB3A6;
+      --brand-ink: #0F1E1A;
+      --danger: #E3665F;
+      --success: #56C583;
+      --border: #2C4A41;
+      --shadow: 0 1px 0 rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0F1E1A;
+    --surface: #16302A;
+    --surface-alt: #1D3B33;
+    --ink: #ECE6D2;
+    --ink-soft: #A6B6AA;
+    --accent: #F2B705;
+    --accent-ink: #2B1E00;
+    --brand: #4FB3A6;
+    --brand-ink: #0F1E1A;
+    --danger: #E3665F;
+    --success: #56C583;
+    --border: #2C4A41;
+    --shadow: 0 1px 0 rgba(0,0,0,.3);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font-family: inherit; }
+  input, select { font-family: inherit; }
+
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* Header */
+  header.top {
+    background: var(--brand);
+    color: var(--brand-ink);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .brandmark { display: flex; align-items: baseline; gap: 8px; }
+  .brandmark .storeicon { font-size: 22px; }
+  .brandmark h1 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    letter-spacing: 0.3px;
+    margin: 0;
+  }
+  .brandmark .tagline { font-size: 12px; opacity: .75; }
+
+  nav.tabs {
+    display: flex;
+    gap: 4px;
+    background: rgba(0,0,0,0.15);
+    padding: 4px;
+    border-radius: 999px;
+    overflow-x: auto;
+  }
+  nav.tabs button {
+    border: none;
+    background: transparent;
+    color: var(--brand-ink);
+    opacity: .7;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  nav.tabs button.active {
+    background: var(--accent);
+    color: var(--accent-ink);
+    opacity: 1;
+  }
+
+  main { flex: 1; padding: 18px 20px 100px; max-width: 1200px; margin: 0 auto; width: 100%; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  h2.section-title {
+    font-family: var(--font-display);
+    font-size: 17px;
+    margin: 0 0 12px;
+    color: var(--ink);
+  }
+
+  /* SELL VIEW */
+  .sell-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 18px;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .sell-layout { grid-template-columns: 1fr; }
+  }
+
+  .chip-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .chip {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink);
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .chip.active { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
+
+  .search-box {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 14px;
+    margin-bottom: 14px;
+  }
+
+  .barcode-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .barcode-row input {
+    flex: 1;
+    padding: 11px 14px;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--brand);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 14px;
+  }
+  .barcode-row button {
+    width: auto;
+    padding: 0 16px;
+    white-space: nowrap;
+  }
+  .barcode-hint {
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    margin: -4px 0 12px;
+  }
+
+  .field-with-scan { display: flex; gap: 6px; }
+  .field-with-scan input { flex: 1; }
+  .scan-icon-btn {
+    border: 1px solid var(--border);
+    background: var(--surface-alt);
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    padding: 0 10px;
+  }
+
+  .scan-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.78);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 60;
+    padding: 16px;
+  }
+  .scan-modal.open { display: flex; }
+  .scan-modal-content {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 16px;
+    width: 100%;
+    max-width: 420px;
+  }
+  .scan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .scan-header h3 { font-family: var(--font-display); font-size: 15px; margin: 0; }
+  .scan-header button {
+    background: none; border: none; font-size: 18px; cursor: pointer; color: var(--ink);
+  }
+  #scannerRegion {
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+    min-height: 220px;
+  }
+  .scan-hint {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 8px;
+    text-align: center;
+  }
+
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
+  }
+  .product-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 10px;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+  .product-card:active { transform: scale(0.97); }
+  .product-card .pname { font-weight: 700; font-size: 13.5px; line-height: 1.25; }
+  .product-card .punit { font-size: 11px; color: var(--ink-soft); }
+  .product-card .pprice { font-family: var(--font-display); font-size: 15px; color: var(--brand); }
+  .product-card .pstock {
+    font-size: 10.5px;
+    color: var(--ink-soft);
+  }
+  .product-card .pstock.low { color: var(--danger); font-weight: 700; }
+  .product-card.out { opacity: .45; cursor: not-allowed; }
+  .empty-note {
+    color: var(--ink-soft);
+    font-size: 13px;
+    padding: 30px 10px;
+    text-align: center;
+  }
+
+  /* CART */
+  .cart-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    position: sticky;
+    top: 14px;
+  }
+  .cart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .cart-header h3 { font-family: var(--font-display); font-size: 15px; margin: 0; }
+  .cart-clear { background: none; border: none; color: var(--danger); font-size: 12px; font-weight: 700; cursor: pointer; }
+
+  .cart-items { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .cart-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .cart-line .lname { flex: 1; }
+  .cart-line .lname .lprice { display: block; color: var(--ink-soft); font-size: 11px; }
+  .qty-ctrl { display: flex; align-items: center; gap: 6px; }
+  .qty-ctrl button {
+    width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface-alt); color: var(--ink); cursor: pointer; font-weight: 700; font-size: 13px;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .qty-ctrl span { min-width: 18px; text-align: center; font-weight: 700; }
+  .line-total { min-width: 56px; text-align: right; font-weight: 700; }
+  .cart-empty { color: var(--ink-soft); font-size: 13px; padding: 20px 0; text-align: center; }
+
+  .cart-totals { border-top: 1px dashed var(--border); padding-top: 10px; margin-bottom: 12px; }
+  .cart-totals .row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+  .cart-totals .row.total { font-family: var(--font-display); font-size: 19px; color: var(--brand); margin-top: 6px; }
+
+  .cash-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .cash-row input {
+    flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--ink); font-size: 14px;
+  }
+  .change-line { font-size: 13px; margin-bottom: 12px; display: flex; justify-content: space-between; }
+  .change-line strong { color: var(--success); }
+  .change-line.negative strong { color: var(--danger); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 11px 16px; border-radius: 8px; border: none; font-weight: 700;
+    font-size: 14px; cursor: pointer; width: 100%;
+  }
+  .btn-primary { background: var(--accent); color: var(--accent-ink); }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-secondary { background: var(--surface-alt); color: var(--ink); border: 1px solid var(--border); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-outline { background: transparent; color: var(--brand); border: 1.5px solid var(--brand); }
+
+  /* INVENTORY */
+  .inv-toolbar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .inv-toolbar input.search-box { max-width: 260px; margin-bottom: 0; }
+
+  table.inv-table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: var(--radius); overflow: hidden; }
+  table.inv-table th, table.inv-table td {
+    padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; text-align: left;
+  }
+  table.inv-table th { background: var(--surface-alt); font-weight: 700; font-size: 12px; }
+  table.inv-table input {
+    width: 100%; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--ink); font-size: 13px;
+  }
+  table.inv-table td.actions { display: flex; gap: 6px; }
+  .icon-btn {
+    border: none; background: transparent; cursor: pointer; font-size: 15px; padding: 4px;
+  }
+  .table-wrap { overflow-x: auto; }
+  .low-badge { color: var(--danger); font-weight: 700; font-size: 11px; }
+
+  .add-product-form {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    align-items: end;
+  }
+  .add-product-form label { font-size: 11px; color: var(--ink-soft); display: block; margin-bottom: 4px; font-weight: 600; }
+  .add-product-form input, .add-product-form select {
+    width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--ink); font-size: 13px;
+  }
+
+  /* HISTORY */
+  .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 10px; margin-bottom: 18px; }
+  .summary-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px;
+  }
+  .summary-card .label { font-size: 11px; color: var(--ink-soft); font-weight: 600; margin-bottom: 4px; }
+  .summary-card .value { font-family: var(--font-display); font-size: 20px; color: var(--brand); }
+
+  .sale-row {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 12px 14px; margin-bottom: 8px; cursor: pointer;
+  }
+  .sale-row-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+  .sale-row-head .sid { color: var(--ink-soft); font-size: 11.5px; }
+  .sale-row-head .stotal { font-weight: 700; color: var(--brand); }
+  .sale-detail { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); font-size: 12.5px; display: none; }
+  .sale-detail.open { display: block; }
+  .sale-detail div.item-line { display: flex; justify-content: space-between; padding: 2px 0; color: var(--ink-soft); }
+
+  /* EXCEL VIEW */
+  .excel-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px; margin-bottom: 16px;
+  }
+  .excel-card h3 { font-family: var(--font-display); font-size: 15px; margin: 0 0 6px; }
+  .excel-card p { font-size: 13px; color: var(--ink-soft); margin: 0 0 12px; line-height: 1.5; }
+  .file-input-wrap { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  input[type="file"] { font-size: 12.5px; }
+  .import-status { font-size: 12.5px; margin-top: 8px; }
+  .import-status.ok { color: var(--success); }
+  .import-status.err { color: var(--danger); }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--brand); color: var(--brand-ink); padding: 12px 20px; border-radius: 999px;
+    font-size: 13px; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.2);
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
+    z-index: 50; max-width: 90vw; text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, -6px); }
+
+  ::-webkit-scrollbar { height: 6px; width: 6px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brandmark">
+      <span class="storeicon">🏪</span>
+      <div>
+        <h1 id="storeNameDisplay">Aling Tindahan</h1>
+        <div class="tagline">Point of Sale</div>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button data-tab="sell" class="active">Sell</button>
+      <button data-tab="inventory">Inventory</button>
+      <button data-tab="history">Sales</button>
+      <button data-tab="excel">Excel</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- SELL -->
+    <section class="view active" id="view-sell">
+      <div class="sell-layout">
+        <div>
+          <div class="barcode-row">
+            <input id="sellBarcodeInput" placeholder="Scan barcode, or type it then press Enter" autocomplete="off" />
+            <button class="btn btn-secondary" id="sellScanBtn">📷 Scan</button>
+          </div>
+          <div class="barcode-hint">Works with a USB/Bluetooth scanner gun too — just click the box and scan.</div>
+          <input class="search-box" id="sellSearch" placeholder="Or search product by name…" />
+          <div class="chip-row" id="categoryChips"></div>
+          <div class="product-grid" id="productGrid"></div>
+        </div>
+
+        <div class="cart-panel">
+          <div class="cart-header">
+            <h3>Current Sale</h3>
+            <button class="cart-clear" id="clearCartBtn">Clear</button>
+          </div>
+          <div class="cart-items" id="cartItems"></div>
+          <div class="cart-totals">
+            <div class="row"><span>Items</span><span id="cartItemCount">0</span></div>
+            <div class="row total"><span>Total</span><span id="cartTotal">₱0.00</span></div>
+          </div>
+          <div class="cash-row">
+            <input type="number" inputmode="decimal" id="cashInput" placeholder="Cash received" />
+          </div>
+          <div class="change-line" id="changeLine"><span>Change</span><strong id="changeAmount">₱0.00</strong></div>
+          <button class="btn btn-primary" id="checkoutBtn" disabled>Complete Sale</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- INVENTORY -->
+    <section class="view" id="view-inventory">
+      <h2 class="section-title">Add a product</h2>
+      <div class="add-product-form">
+        <div>
+          <label>Name</label>
+          <input id="newName" placeholder="e.g. Coke 8oz" />
+        </div>
+        <div>
+          <label>Category</label>
+          <input id="newCategory" placeholder="e.g. Drinks" />
+        </div>
+        <div>
+          <label>Unit</label>
+          <input id="newUnit" placeholder="e.g. bottle, kilo, sachet" />
+        </div>
+        <div>
+          <label>Price (₱)</label>
+          <input id="newPrice" type="number" step="0.01" placeholder="0.00" />
+        </div>
+        <div>
+          <label>Stock</label>
+          <input id="newStock" type="number" placeholder="0" />
+        </div>
+        <div>
+          <label>Barcode</label>
+          <div class="field-with-scan">
+            <input id="newBarcode" placeholder="Optional" autocomplete="off" />
+            <button class="scan-icon-btn" id="newBarcodeScanBtn" type="button" title="Scan with live camera">📷</button>
+            <button class="scan-icon-btn" id="newBarcodePhotoBtn" type="button" title="Take a photo of the barcode">📸</button>
+            <input type="file" accept="image/*" capture="environment" id="newBarcodePhotoInput" style="display:none">
+          </div>
+        </div>
+        <div>
+          <button class="btn btn-primary" id="addProductBtn">+ Add product</button>
+        </div>
+      </div>
+
+      <h2 class="section-title">Inventory</h2>
+      <div class="inv-toolbar">
+        <input class="search-box" id="invSearch" placeholder="Search inventory…" />
+        <button class="btn btn-outline" style="width:auto" id="resetDataBtn">Reset all data</button>
+      </div>
+      <div class="table-wrap">
+        <table class="inv-table">
+          <thead>
+            <tr><th>Name</th><th>Category</th><th>Unit</th><th>Barcode</th><th>Price</th><th>Stock</th><th></th></tr>
+          </thead>
+          <tbody id="invTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section class="view" id="view-history">
+      <h2 class="section-title">Sales summary</h2>
+      <div class="summary-cards">
+        <div class="summary-card"><div class="label">Today's sales</div><div class="value" id="sumToday">₱0.00</div></div>
+        <div class="summary-card"><div class="label">Today's transactions</div><div class="value" id="sumTodayCount">0</div></div>
+        <div class="summary-card"><div class="label">All-time sales</div><div class="value" id="sumAll">₱0.00</div></div>
+      </div>
+      <h2 class="section-title">Transactions</h2>
+      <div id="salesList"></div>
+    </section>
+
+    <!-- EXCEL -->
+    <section class="view" id="view-excel">
+      <div class="excel-card">
+        <h3>📤 Export inventory to Excel</h3>
+        <p>Download your current product list as an .xlsx file — use it as your backup or master copy.</p>
+        <button class="btn btn-primary" style="width:auto" id="exportInvBtn">Download inventory.xlsx</button>
+      </div>
+      <div class="excel-card">
+        <h3>📤 Export sales to Excel</h3>
+        <p>Download every recorded sale as an .xlsx file — hand this to whoever does the books.</p>
+        <button class="btn btn-primary" style="width:auto" id="exportSalesBtn">Download sales.xlsx</button>
+      </div>
+      <div class="excel-card">
+        <h3>📥 Import products from Excel</h3>
+        <p>Upload an .xlsx or .csv file with columns <strong>Name, Category, Unit, Barcode, Price, Stock</strong> (header row required). Rows are matched by barcode first, or by name if there's no barcode — matches update the existing product, everything else is added new.</p>
+        <div class="file-input-wrap">
+          <input type="file" id="importFile" accept=".xlsx,.xls,.csv" />
+          <button class="btn btn-secondary" style="width:auto" id="downloadTemplateBtn">Download blank template</button>
+        </div>
+        <div class="import-status" id="importStatus"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="scan-modal" id="scanModal">
+  <div class="scan-modal-content">
+    <div class="scan-header">
+      <h3>Scan barcode</h3>
+      <button id="scanCloseBtn" aria-label="Close">✕</button>
+    </div>
+    <div id="scannerRegion"></div>
+    <div class="scan-hint" id="scanHint">Point your camera at the barcode.</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  "use strict";
+
+  var CURRENCY = "₱";
+  var STORAGE_KEYS = { products: "possari_products", sales: "possari_sales" };
+
+  var state = {
+    products: [],
+    sales: [],
+    cart: [],       // {productId, qty}
+    activeCategory: "All",
+    sellSearch: "",
+    invSearch: ""
+  };
+
+  function uid(prefix) {
+    return prefix + "_" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+  }
+
+  function fmt(n) {
+    n = Number(n) || 0;
+    return CURRENCY + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function safeGet(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      if (raw === null) return fallback;
+      return JSON.parse(raw);
+    } catch (e) {
+      console.error("storage read failed", e);
+      return fallback;
+    }
+  }
+  function safeSet(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+      console.error("storage write failed", e);
+      showToast("Couldn't save — storage may be full.");
+    }
+  }
+
+  function defaultProducts() {
+    return [
+      { id: uid("p"), name: "Coke 8oz", category: "Drinks", unit: "bottle", price: 20, stock: 24, barcode: "4801981123456" },
+      { id: uid("p"), name: "Softdrinks 1.5L", category: "Drinks", unit: "bottle", price: 65, stock: 10, barcode: "4801981234567" },
+      { id: uid("p"), name: "Instant Coffee", category: "Grocery", unit: "sachet", price: 8, stock: 60, barcode: "" },
+      { id: uid("p"), name: "Sardines", category: "Canned Goods", unit: "can", price: 22, stock: 30, barcode: "4800016543210" },
+      { id: uid("p"), name: "Corned Beef", category: "Canned Goods", unit: "can", price: 45, stock: 20, barcode: "" },
+      { id: uid("p"), name: "Rice", category: "Grocery", unit: "kilo", price: 58, stock: 50, barcode: "" },
+      { id: uid("p"), name: "Eggs", category: "Grocery", unit: "piece", price: 9, stock: 90, barcode: "" },
+      { id: uid("p"), name: "Laundry Soap Bar", category: "Household", unit: "bar", price: 18, stock: 40, barcode: "" },
+      { id: uid("p"), name: "Shampoo Sachet", category: "Household", unit: "sachet", price: 7, stock: 100, barcode: "" },
+      { id: uid("p"), name: "Chips", category: "Snacks", unit: "pack", price: 15, stock: 35, barcode: "" },
+      { id: uid("p"), name: "Biscuits", category: "Snacks", unit: "pack", price: 12, stock: 40, barcode: "" },
+      { id: uid("p"), name: "Candles", category: "Household", unit: "piece", price: 10, stock: 25, barcode: "" },
+      { id: uid("p"), name: "Cigarette (stick)", category: "Others", unit: "stick", price: 10, stock: 200, barcode: "" },
+      { id: uid("p"), name: "Ice", category: "Others", unit: "bag", price: 15, stock: 15, barcode: "" }
+    ];
+  }
+
+  function loadData() {
+    state.products = safeGet(STORAGE_KEYS.products, null) || defaultProducts();
+    if (!safeGet(STORAGE_KEYS.products, null)) safeSet(STORAGE_KEYS.products, state.products);
+    state.sales = safeGet(STORAGE_KEYS.sales, []);
+  }
+  function saveProducts() { safeSet(STORAGE_KEYS.products, state.products); }
+  function saveSales() { safeSet(STORAGE_KEYS.sales, state.sales); }
+
+  var toastTimer = null;
+  function showToast(msg) {
+    var t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { t.classList.remove("show"); }, 2200);
+  }
+
+  // ---------- TABS ----------
+  document.getElementById("tabs").addEventListener("click", function(e) {
+    var btn = e.target.closest("button[data-tab]");
+    if (!btn) return;
+    document.querySelectorAll("nav.tabs button").forEach(function(b){ b.classList.remove("active"); });
+    btn.classList.add("active");
+    var tab = btn.getAttribute("data-tab");
+    document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
+    document.getElementById("view-" + tab).classList.add("active");
+    if (tab === "inventory") renderInventory();
+    if (tab === "history") renderHistory();
+    if (tab === "sell") {
+      var bcInput = document.getElementById("sellBarcodeInput");
+      if (bcInput) setTimeout(function() { bcInput.focus(); }, 50);
+    }
+  });
+
+  // ---------- SELL VIEW ----------
+  function getCategories() {
+    var set = {};
+    state.products.forEach(function(p) { set[p.category || "Others"] = true; });
+    return ["All"].concat(Object.keys(set).sort());
+  }
+
+  function renderCategoryChips() {
+    var wrap = document.getElementById("categoryChips");
+    wrap.innerHTML = "";
+    getCategories().forEach(function(cat) {
+      var chip = document.createElement("button");
+      chip.className = "chip" + (state.activeCategory === cat ? " active" : "");
+      chip.textContent = cat;
+      chip.addEventListener("click", function() {
+        state.activeCategory = cat;
+        renderCategoryChips();
+        renderProductGrid();
+      });
+      wrap.appendChild(chip);
+    });
+  }
+
+  function renderProductGrid() {
+    var grid = document.getElementById("productGrid");
+    grid.innerHTML = "";
+    var q = state.sellSearch.trim().toLowerCase();
+    var list = state.products.filter(function(p) {
+      var matchCat = state.activeCategory === "All" || (p.category || "Others") === state.activeCategory;
+      var matchSearch = !q || p.name.toLowerCase().indexOf(q) !== -1;
+      return matchCat && matchSearch;
+    });
+    if (list.length === 0) {
+      grid.innerHTML = '<div class="empty-note">No products found. Add some in the Inventory tab.</div>';
+      return;
+    }
+    list.forEach(function(p) {
+      var card = document.createElement("button");
+      var out = p.stock <= 0;
+      card.className = "product-card" + (out ? " out" : "");
+      card.disabled = out;
+      var low = p.stock > 0 && p.stock <= 5;
+      card.innerHTML =
+        '<div class="pname">' + escapeHtml(p.name) + '</div>' +
+        '<div class="punit">' + escapeHtml(p.unit || "") + '</div>' +
+        '<div class="pprice">' + fmt(p.price) + '</div>' +
+        '<div class="pstock' + (low ? ' low' : '') + '">' + (out ? "Out of stock" : p.stock + " left") + '</div>';
+      card.addEventListener("click", function() { addToCart(p.id); });
+      grid.appendChild(card);
+    });
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, function(c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function addToCart(productId) {
+    var product = state.products.find(function(p) { return p.id === productId; });
+    if (!product) return;
+    var line = state.cart.find(function(l) { return l.productId === productId; });
+    var currentQty = line ? line.qty : 0;
+    if (currentQty + 1 > product.stock) {
+      showToast("Not enough stock for " + product.name);
+      return;
+    }
+    if (line) { line.qty += 1; } else { state.cart.push({ productId: productId, qty: 1 }); }
+    renderCart();
+  }
+
+  function changeQty(productId, delta) {
+    var line = state.cart.find(function(l) { return l.productId === productId; });
+    if (!line) return;
+    var product = state.products.find(function(p) { return p.id === productId; });
+    var newQty = line.qty + delta;
+    if (newQty <= 0) {
+      state.cart = state.cart.filter(function(l) { return l.productId !== productId; });
+    } else if (product && newQty > product.stock) {
+      showToast("Not enough stock for " + product.name);
+      return;
+    } else {
+      line.qty = newQty;
+    }
+    renderCart();
+  }
+
+  function cartTotal() {
+    return state.cart.reduce(function(sum, l) {
+      var p = state.products.find(function(pp) { return pp.id === l.productId; });
+      return sum + (p ? p.price * l.qty : 0);
+    }, 0);
+  }
+
+  function renderCart() {
+    var wrap = document.getElementById("cartItems");
+    wrap.innerHTML = "";
+    if (state.cart.length === 0) {
+      wrap.innerHTML = '<div class="cart-empty">Tap a product to add it here.</div>';
+    } else {
+      state.cart.forEach(function(l) {
+        var p = state.products.find(function(pp) { return pp.id === l.productId; });
+        if (!p) return;
+        var row = document.createElement("div");
+        row.className = "cart-line";
+        row.innerHTML =
+          '<div class="lname">' + escapeHtml(p.name) + '<span class="lprice">' + fmt(p.price) + ' each</span></div>' +
+          '<div class="qty-ctrl">' +
+            '<button data-act="dec" data-id="' + p.id + '">−</button>' +
+            '<span>' + l.qty + '</span>' +
+            '<button data-act="inc" data-id="' + p.id + '">+</button>' +
+          '</div>' +
+          '<div class="line-total">' + fmt(p.price * l.qty) + '</div>';
+        wrap.appendChild(row);
+      });
+    }
+    var total = cartTotal();
+    var itemCount = state.cart.reduce(function(s,l){ return s + l.qty; }, 0);
+    document.getElementById("cartItemCount").textContent = itemCount;
+    document.getElementById("cartTotal").textContent = fmt(total);
+    document.getElementById("checkoutBtn").disabled = state.cart.length === 0;
+    updateChange();
+    renderProductGrid();
+  }
+
+  document.getElementById("cartItems").addEventListener("click", function(e) {
+    var btn = e.target.closest("button[data-act]");
+    if (!btn) return;
+    var id = btn.getAttribute("data-id");
+    changeQty(id, btn.getAttribute("data-act") === "inc" ? 1 : -1);
+  });
+
+  document.getElementById("clearCartBtn").addEventListener("click", function() {
+    state.cart = [];
+    document.getElementById("cashInput").value = "";
+    renderCart();
+  });
+
+  function updateChange() {
+    var cash = parseFloat(document.getElementById("cashInput").value);
+    var total = cartTotal();
+    var line = document.getElementById("changeLine");
+    var amountEl = document.getElementById("changeAmount");
+    if (isNaN(cash)) {
+      line.classList.remove("negative");
+      amountEl.textContent = fmt(0);
+      return;
+    }
+    var change = cash - total;
+    amountEl.textContent = fmt(Math.abs(change));
+    line.classList.toggle("negative", change < 0);
+    line.querySelector("span").textContent = change < 0 ? "Still needed" : "Change";
+  }
+  document.getElementById("cashInput").addEventListener("input", updateChange);
+
+  document.getElementById("checkoutBtn").addEventListener("click", function() {
+    if (state.cart.length === 0) return;
+    var total = cartTotal();
+    var cash = parseFloat(document.getElementById("cashInput").value);
+    if (isNaN(cash)) cash = total;
+    if (cash < total) {
+      showToast("Cash received is less than the total.");
+      return;
+    }
+    var items = state.cart.map(function(l) {
+      var p = state.products.find(function(pp) { return pp.id === l.productId; });
+      return { productId: l.productId, name: p ? p.name : "Unknown", qty: l.qty, price: p ? p.price : 0 };
+    });
+    items.forEach(function(it) {
+      var p = state.products.find(function(pp) { return pp.id === it.productId; });
+      if (p) p.stock = Math.max(0, p.stock - it.qty);
+    });
+    var sale = {
+      id: uid("s"),
+      datetime: new Date().toISOString(),
+      items: items,
+      total: total,
+      cash: cash,
+      change: cash - total
+    };
+    state.sales.unshift(sale);
+    saveSales();
+    saveProducts();
+    state.cart = [];
+    document.getElementById("cashInput").value = "";
+    renderCart();
+    showToast("Sale complete — change: " + fmt(sale.change));
+  });
+
+  document.getElementById("sellSearch").addEventListener("input", function(e) {
+    state.sellSearch = e.target.value;
+    renderProductGrid();
+  });
+
+  // ---------- BARCODE: sell by scan ----------
+  function handleBarcodeForSale(code) {
+    code = (code || "").trim();
+    if (!code) return;
+    var p = state.products.find(function(pp) { return pp.barcode && pp.barcode === code; });
+    if (p) {
+      if (p.stock <= 0) {
+        showToast(p.name + " is out of stock.");
+      } else {
+        addToCart(p.id);
+        showToast(p.name + " added.");
+      }
+    } else {
+      showToast('No product with barcode "' + code + '". Add it in Inventory.');
+    }
+  }
+
+  document.getElementById("sellBarcodeInput").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleBarcodeForSale(this.value);
+      this.value = "";
+    }
+  });
+
+  document.getElementById("sellScanBtn").addEventListener("click", function() {
+    openScanner(function(code) {
+      handleBarcodeForSale(code);
+    });
+  });
+
+  document.getElementById("newBarcodeScanBtn").addEventListener("click", function() {
+    openScanner(function(code) {
+      document.getElementById("newBarcode").value = code;
+      showToast("Barcode captured. Fill in the rest and Add product.");
+    });
+  });
+
+  document.getElementById("newBarcodePhotoBtn").addEventListener("click", function() {
+    document.getElementById("newBarcodePhotoInput").click();
+  });
+
+  document.getElementById("newBarcodePhotoInput").addEventListener("change", function(e) {
+    var file = e.target.files && e.target.files[0];
+    e.target.value = ""; // allow re-selecting the same photo later
+    if (!file) return;
+    showToast("Reading barcode from photo…");
+    decodeBarcodeFromImage(
+      file,
+      function(code) {
+        document.getElementById("newBarcode").value = code;
+        showToast("Barcode captured: " + code);
+      },
+      function() {
+        showToast("Couldn't find a barcode in that photo. Try again with more light and less blur.");
+      }
+    );
+  });
+
+  function decodeBarcodeFromImage(file, onSuccess, onError) {
+    if (typeof Html5Qrcode === "undefined") {
+      onError("Scanner library not loaded.");
+      return;
+    }
+    var tempId = "hiddenFileScanRegion";
+    var tempDiv = document.getElementById(tempId);
+    if (!tempDiv) {
+      tempDiv = document.createElement("div");
+      tempDiv.id = tempId;
+      tempDiv.style.display = "none";
+      document.body.appendChild(tempDiv);
+    }
+    try {
+      var fileScanner = new Html5Qrcode(tempId);
+      fileScanner.scanFile(file, false).then(function(decodedText) {
+        onSuccess(decodedText);
+      }).catch(function(err) {
+        console.error(err);
+        onError(err);
+      });
+    } catch (err) {
+      console.error(err);
+      onError(err);
+    }
+  }
+
+  // ---------- CAMERA SCAN MODAL ----------
+  var html5QrInstance = null;
+
+  function openScanner(onResult) {
+    var modal = document.getElementById("scanModal");
+    var hint = document.getElementById("scanHint");
+    var region = document.getElementById("scannerRegion");
+    region.innerHTML = "";
+    hint.textContent = "Point your camera at the barcode.";
+    modal.classList.add("open");
+
+    if (typeof Html5Qrcode === "undefined") {
+      hint.textContent = "Camera scanner couldn't load. Check your internet connection.";
+      return;
+    }
+
+    try {
+      html5QrInstance = new Html5Qrcode("scannerRegion");
+      var config = { fps: 10, qrbox: { width: 260, height: 160 } };
+      html5QrInstance.start(
+        { facingMode: "environment" },
+        config,
+        function(decodedText) {
+          onResult(decodedText);
+          closeScanner();
+        },
+        function() { /* per-frame decode miss, ignore */ }
+      ).catch(function(err) {
+        console.error(err);
+        hint.textContent = "Couldn't access the camera. Check camera permissions for this page.";
+      });
+    } catch (err) {
+      console.error(err);
+      hint.textContent = "Camera scanner failed to start.";
+    }
+  }
+
+  function closeScanner() {
+    document.getElementById("scanModal").classList.remove("open");
+    if (html5QrInstance) {
+      var instance = html5QrInstance;
+      html5QrInstance = null;
+      instance.stop().then(function() {
+        instance.clear();
+      }).catch(function() { /* already stopped */ });
+    }
+  }
+
+  document.getElementById("scanCloseBtn").addEventListener("click", closeScanner);
+
+  // ---------- INVENTORY VIEW ----------
+  function renderInventory() {
+    var body = document.getElementById("invTableBody");
+    body.innerHTML = "";
+    var q = state.invSearch.trim().toLowerCase();
+    var list = state.products.filter(function(p) {
+      return !q || p.name.toLowerCase().indexOf(q) !== -1 || (p.category||"").toLowerCase().indexOf(q) !== -1;
+    });
+    if (list.length === 0) {
+      body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--ink-soft);padding:24px;">No products.</td></tr>';
+      return;
+    }
+    list.forEach(function(p) {
+      var tr = document.createElement("tr");
+      var low = p.stock <= 5;
+      tr.innerHTML =
+        '<td><input data-field="name" data-id="' + p.id + '" value="' + escapeHtml(p.name) + '"></td>' +
+        '<td><input data-field="category" data-id="' + p.id + '" value="' + escapeHtml(p.category||"") + '"></td>' +
+        '<td><input data-field="unit" data-id="' + p.id + '" value="' + escapeHtml(p.unit||"") + '"></td>' +
+        '<td><input data-field="barcode" data-id="' + p.id + '" value="' + escapeHtml(p.barcode||"") + '" placeholder="—"></td>' +
+        '<td><input data-field="price" data-id="' + p.id + '" type="number" step="0.01" value="' + p.price + '"></td>' +
+        '<td><input data-field="stock" data-id="' + p.id + '" type="number" value="' + p.stock + '">' + (low ? '<div class="low-badge">Low stock</div>' : '') + '</td>' +
+        '<td class="actions"><button class="icon-btn" data-del="' + p.id + '" title="Delete">🗑️</button></td>';
+      body.appendChild(tr);
+    });
+  }
+
+  document.getElementById("invTableBody").addEventListener("change", function(e) {
+    var input = e.target.closest("input[data-field]");
+    if (!input) return;
+    var id = input.getAttribute("data-id");
+    var field = input.getAttribute("data-field");
+    var p = state.products.find(function(pp) { return pp.id === id; });
+    if (!p) return;
+    if (field === "price" || field === "stock") {
+      var num = parseFloat(input.value);
+      p[field] = isNaN(num) ? 0 : num;
+    } else {
+      p[field] = input.value;
+    }
+    saveProducts();
+    renderCategoryChips();
+    showToast("Saved.");
+  });
+
+  document.getElementById("invTableBody").addEventListener("click", function(e) {
+    var btn = e.target.closest("button[data-del]");
+    if (!btn) return;
+    var id = btn.getAttribute("data-del");
+    var p = state.products.find(function(pp) { return pp.id === id; });
+    if (!p) return;
+    if (confirm('Delete "' + p.name + '"?')) {
+      state.products = state.products.filter(function(pp) { return pp.id !== id; });
+      saveProducts();
+      renderInventory();
+      renderCategoryChips();
+      renderProductGrid();
+    }
+  });
+
+  document.getElementById("invSearch").addEventListener("input", function(e) {
+    state.invSearch = e.target.value;
+    renderInventory();
+  });
+
+  document.getElementById("addProductBtn").addEventListener("click", function() {
+    var name = document.getElementById("newName").value.trim();
+    var category = document.getElementById("newCategory").value.trim() || "Others";
+    var unit = document.getElementById("newUnit").value.trim();
+    var price = parseFloat(document.getElementById("newPrice").value);
+    var stock = parseInt(document.getElementById("newStock").value, 10);
+    var barcode = document.getElementById("newBarcode").value.trim();
+    if (!name) { showToast("Enter a product name."); return; }
+    if (isNaN(price) || price < 0) { showToast("Enter a valid price."); return; }
+    if (isNaN(stock) || stock < 0) stock = 0;
+    if (barcode && state.products.some(function(p){ return p.barcode && p.barcode === barcode; })) {
+      showToast("That barcode is already used by another product.");
+      return;
+    }
+    state.products.push({ id: uid("p"), name: name, category: category, unit: unit, price: price, stock: stock, barcode: barcode });
+    saveProducts();
+    ["newName","newCategory","newUnit","newPrice","newStock","newBarcode"].forEach(function(id){ document.getElementById(id).value = ""; });
+    renderInventory();
+    renderCategoryChips();
+    renderProductGrid();
+    showToast("Product added.");
+  });
+
+  document.getElementById("resetDataBtn").addEventListener("click", function() {
+    if (confirm("This clears ALL products and sales on this device. Continue?")) {
+      state.products = defaultProducts();
+      state.sales = [];
+      saveProducts();
+      saveSales();
+      state.cart = [];
+      renderInventory();
+      renderCategoryChips();
+      renderProductGrid();
+      renderCart();
+      renderHistory();
+      showToast("Data reset.");
+    }
+  });
+
+  // ---------- HISTORY VIEW ----------
+  function isSameDay(iso, ref) {
+    var d = new Date(iso);
+    return d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth() && d.getDate() === ref.getDate();
+  }
+
+  function renderHistory() {
+    var today = new Date();
+    var todaySales = state.sales.filter(function(s) { return isSameDay(s.datetime, today); });
+    var todayTotal = todaySales.reduce(function(s, sale) { return s + sale.total; }, 0);
+    var allTotal = state.sales.reduce(function(s, sale) { return s + sale.total; }, 0);
+
+    document.getElementById("sumToday").textContent = fmt(todayTotal);
+    document.getElementById("sumTodayCount").textContent = todaySales.length;
+    document.getElementById("sumAll").textContent = fmt(allTotal);
+
+    var list = document.getElementById("salesList");
+    list.innerHTML = "";
+    if (state.sales.length === 0) {
+      list.innerHTML = '<div class="empty-note">No sales recorded yet.</div>';
+      return;
+    }
+    state.sales.forEach(function(sale) {
+      var row = document.createElement("div");
+      row.className = "sale-row";
+      var dt = new Date(sale.datetime);
+      var dateStr = dt.toLocaleDateString() + " " + dt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+      var itemsHtml = sale.items.map(function(it) {
+        return '<div class="item-line"><span>' + escapeHtml(it.name) + ' × ' + it.qty + '</span><span>' + fmt(it.price * it.qty) + '</span></div>';
+      }).join("");
+      row.innerHTML =
+        '<div class="sale-row-head"><span class="sid">' + dateStr + '</span><span class="stotal">' + fmt(sale.total) + '</span></div>' +
+        '<div class="sale-detail">' + itemsHtml + '<div class="item-line"><span>Cash</span><span>' + fmt(sale.cash) + '</span></div><div class="item-line"><span>Change</span><span>' + fmt(sale.change) + '</span></div></div>';
+      row.addEventListener("click", function() {
+        row.querySelector(".sale-detail").classList.toggle("open");
+      });
+      list.appendChild(row);
+    });
+  }
+
+  // ---------- EXCEL EXPORT / IMPORT ----------
+  document.getElementById("exportInvBtn").addEventListener("click", function() {
+    try {
+      var rows = state.products.map(function(p) {
+        return { Name: p.name, Category: p.category, Unit: p.unit, Barcode: p.barcode || "", Price: p.price, Stock: p.stock };
+      });
+      var ws = XLSX.utils.json_to_sheet(rows);
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Inventory");
+      XLSX.writeFile(wb, "inventory.xlsx");
+      showToast("Inventory exported.");
+    } catch (e) {
+      console.error(e);
+      showToast("Export failed.");
+    }
+  });
+
+  document.getElementById("exportSalesBtn").addEventListener("click", function() {
+    try {
+      var rows = [];
+      state.sales.forEach(function(sale) {
+        sale.items.forEach(function(it) {
+          rows.push({
+            SaleID: sale.id,
+            DateTime: new Date(sale.datetime).toLocaleString(),
+            Product: it.name,
+            Qty: it.qty,
+            Price: it.price,
+            LineTotal: it.price * it.qty,
+            SaleTotal: sale.total,
+            Cash: sale.cash,
+            Change: sale.change
+          });
+        });
+      });
+      var ws = XLSX.utils.json_to_sheet(rows);
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Sales");
+      XLSX.writeFile(wb, "sales.xlsx");
+      showToast("Sales exported.");
+    } catch (e) {
+      console.error(e);
+      showToast("Export failed.");
+    }
+  });
+
+  document.getElementById("downloadTemplateBtn").addEventListener("click", function() {
+    try {
+      var ws = XLSX.utils.json_to_sheet([{ Name: "Sample Item", Category: "Snacks", Unit: "pack", Barcode: "", Price: 15, Stock: 20 }]);
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Products");
+      XLSX.writeFile(wb, "product_template.xlsx");
+    } catch (e) {
+      console.error(e);
+      showToast("Couldn't create template.");
+    }
+  });
+
+  document.getElementById("importFile").addEventListener("change", function(e) {
+    var file = e.target.files[0];
+    var statusEl = document.getElementById("importStatus");
+    if (!file) return;
+    statusEl.textContent = "Reading file…";
+    statusEl.className = "import-status";
+    var reader = new FileReader();
+    reader.onload = function(evt) {
+      try {
+        var data = new Uint8Array(evt.target.result);
+        var wb = XLSX.read(data, { type: "array" });
+        var firstSheet = wb.Sheets[wb.SheetNames[0]];
+        var rows = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
+        if (!rows.length) {
+          statusEl.textContent = "No rows found in that file.";
+          statusEl.className = "import-status err";
+          return;
+        }
+        var added = 0, updated = 0, skipped = 0;
+        rows.forEach(function(row) {
+          var name = String(row.Name || row.name || "").trim();
+          if (!name) { skipped++; return; }
+          var category = String(row.Category || row.category || "Others").trim();
+          var unit = String(row.Unit || row.unit || "").trim();
+          var barcode = String(row.Barcode || row.barcode || "").trim();
+          var price = parseFloat(row.Price || row.price);
+          var stock = parseInt(row.Stock || row.stock, 10);
+          if (isNaN(price)) price = 0;
+          if (isNaN(stock)) stock = 0;
+          var existing = null;
+          if (barcode) {
+            existing = state.products.find(function(p) { return p.barcode && p.barcode === barcode; });
+          }
+          if (!existing) {
+            existing = state.products.find(function(p) { return p.name.toLowerCase() === name.toLowerCase(); });
+          }
+          if (existing) {
+            existing.name = name;
+            existing.category = category;
+            existing.unit = unit;
+            existing.barcode = barcode;
+            existing.price = price;
+            existing.stock = stock;
+            updated++;
+          } else {
+            state.products.push({ id: uid("p"), name: name, category: category, unit: unit, barcode: barcode, price: price, stock: stock });
+            added++;
+          }
+        });
+        saveProducts();
+        renderInventory();
+        renderCategoryChips();
+        renderProductGrid();
+        statusEl.textContent = "Imported: " + added + " added, " + updated + " updated" + (skipped ? ", " + skipped + " skipped (no name)" : "") + ".";
+        statusEl.className = "import-status ok";
+        showToast("Import complete.");
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Couldn't read that file. Make sure it's a valid .xlsx or .csv with a header row.";
+        statusEl.className = "import-status err";
+      }
+      e.target.value = "";
+    };
+    reader.onerror = function() {
+      statusEl.textContent = "Couldn't read the file.";
+      statusEl.className = "import-status err";
+    };
+    reader.readAsArrayBuffer(file);
+  });
+
+  // ---------- INIT ----------
+  function init() {
+    loadData();
+    renderCategoryChips();
+    renderProductGrid();
+    renderCart();
+    renderInventory();
+    renderHistory();
+  }
+  init();
+})();
+</script>
+</body>
+</html>
